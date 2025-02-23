@@ -23,7 +23,7 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
     private var doodleWidth = 0
     private var doodleHeight = 0
     private var rayColor = Color(150, 0, 0)
-    private var numPointsPerSide: Int = INITIAL_POINTS_VALUE
+    private var numPointsPerSide: Int = INITIAL_RAYS_VALUE
     private var sides: List<Side> = listOf()
     private var locusList: MutableList<Locus> = mutableListOf()
     private var selectedLocus: Locus? = null

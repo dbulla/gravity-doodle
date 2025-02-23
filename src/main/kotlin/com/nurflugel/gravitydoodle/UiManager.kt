@@ -2,6 +2,8 @@ package com.nurflugel.gravitydoodle
 
 import java.awt.*
 import java.awt.Font.PLAIN
+import java.awt.GridBagConstraints.CENTER
+import java.awt.GridBagConstraints.EAST
 import java.awt.GridBagConstraints.HORIZONTAL
 import java.awt.GridBagConstraints.NORTH
 import java.awt.event.KeyAdapter
@@ -18,9 +20,9 @@ import javax.swing.BoxLayout.Y_AXIS
 import javax.swing.border.EtchedBorder
 import kotlin.system.exitProcess
 
-private const val MIN_POINTS_VALUE = 2
-private const val MAX_POINTS_VALUE = 200
-const val INITIAL_POINTS_VALUE = 80
+private const val MIN_RAYS_VALUE = 2
+private const val MAX_RAYS_VALUE = 200
+const val INITIAL_RAYS_VALUE = 80
 
 /**
  * @author Douglas Bullard
@@ -47,11 +49,11 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
 
     private val clearButton = JButton("Clear")
     private val quitButton = JButton("Quit")
-    private val printButton = JButton("Print")
+//    private val printButton = JButton("Print")
     private lateinit var doodlePanel: DoodlePanel
 
-    private val numberOfEdgePointsLabel = JLabel("Number of Edge Points: ")
-    private val numberOfEdgePointsSpinner = JSpinner(SpinnerNumberModel(INITIAL_POINTS_VALUE, MIN_POINTS_VALUE, MAX_POINTS_VALUE, 1))
+    private val numberOfRaysLabel = JLabel("Number of Rays: ")
+    private val numberOfRaysSpinner = JSpinner(SpinnerNumberModel(INITIAL_RAYS_VALUE, MIN_RAYS_VALUE, MAX_RAYS_VALUE, 1))
 
     /**
      * Creates new form ControlPanel
@@ -66,12 +68,12 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
     private inner class ButtonKeyPressListener : KeyAdapter() {
         override fun keyPressed(e: KeyEvent) {
             println("..e.keyCode = ${e.keyCode}")
-            val currentValue = numberOfEdgePointsSpinner.value.toString().toInt()
+            val currentValue = numberOfRaysSpinner.value.toString().toInt()
             when (e.keyCode) {
                 // "-"
-                45 -> if (currentValue > MIN_POINTS_VALUE) numberOfEdgePointsSpinner.value = numberOfEdgePointsSpinner.previousValue
+                45 -> if (currentValue > MIN_RAYS_VALUE) numberOfRaysSpinner.value = numberOfRaysSpinner.previousValue
                 // "+"
-                61 -> if (currentValue < MAX_POINTS_VALUE) numberOfEdgePointsSpinner.value = numberOfEdgePointsSpinner.nextValue
+                61 -> if (currentValue < MAX_RAYS_VALUE) numberOfRaysSpinner.value = numberOfRaysSpinner.nextValue
             }
         }
     }
@@ -91,6 +93,9 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
         locusRadioButtonPanel.add(moveLocusPointsRadioButton)
         locusRadioButtonPanel.add(removeLocusPointsRadioButton)
 
+        numberOfRaysLabel.horizontalAlignment=SwingConstants.RIGHT
+        sunIsImmobileCheckbox.horizontalAlignment = SwingConstants.RIGHT
+
         borderButtonPanel.layout = BoxLayout(borderButtonPanel, Y_AXIS)
         borderButtonPanel.border = createTitledBorder(EtchedBorder(), "Doodle Boundary")
         borderButtonPanel.add(frameBorderButton)
@@ -107,7 +112,7 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
         fixedWanderButtonGroup.add(fixedModeRadioButton)
         fixedWanderButtonGroup.add(wanderModeRadioButton)
 
-        numberOfEdgePointsSpinner.toolTipText = "Controls how many points per side"
+        numberOfRaysSpinner.toolTipText = "Controls how many points per side"
 
         addMoveRemoteButtonGroup.add(addLocusPointsRadioButton)
         addMoveRemoteButtonGroup.add(moveLocusPointsRadioButton)
@@ -120,9 +125,9 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
         quitButton.addActionListener { exitProcess(0) }
         wanderModeRadioButton.addActionListener { doodleFrame.getDoodlePanel().wander() }
         fixedModeRadioButton.addActionListener { setWandering(false) }
-        numberOfEdgePointsSpinner.addChangeListener { doodleFrame.getDoodlePanel().setNumPoints(numberOfEdgePointsSpinner.model.value.toString().toInt()) }
-        numberOfEdgePointsSpinner.addMouseWheelListener { numPointsSpinnerMouseWheelMoved(it) }
-        printButton.addActionListener { printScreen() }
+        numberOfRaysSpinner.addChangeListener { doodleFrame.getDoodlePanel().setNumPoints(numberOfRaysSpinner.model.value.toString().toInt()) }
+        numberOfRaysSpinner.addMouseWheelListener { numPointsSpinnerMouseWheelMoved(it) }
+//        printButton.addActionListener { printScreen() }
         frameBorderButton.addActionListener { doodleFrame.getDoodlePanel().refresh() }
         circularBorderButton.addActionListener { doodleFrame.getDoodlePanel().refresh() }
         // need to have _something_ registered to listen for key clicks, as jPanel and jFrame don't weem to work... maybe event thread issue?
@@ -134,16 +139,15 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
     private fun layoutComponents() {
         /// left hand side
         addComponent(locusRadioButtonPanel, 0, 0, 2, 2, HORIZONTAL, NORTH)
-        addComponent(numberOfEdgePointsLabel, 0, 2, 1, 1, HORIZONTAL, GridBagConstraints.CENTER)
-        addComponent(numberOfEdgePointsSpinner, 1, 2, 1, 1, HORIZONTAL, GridBagConstraints.CENTER, 12)
-
+        addComponent(numberOfRaysLabel, 0, 2, 1, 1, HORIZONTAL, EAST)
+        addComponent(numberOfRaysSpinner, 1, 2, 1, 1, HORIZONTAL, CENTER, 12)
+        addComponent(sunIsImmobileCheckbox, 0, 3, 1, 1, GridBagConstraints.EAST, CENTER)
         /// right hand side controls
         var y = 0
-        addComponent(sunIsImmobileCheckbox, 2, y++, 1, 1, HORIZONTAL, GridBagConstraints.CENTER)
         addComponent(fixedWanderModePanel, 2, y++, 1, 1, HORIZONTAL, NORTH)
         addComponent(borderButtonPanel, 2, y++, 1, 1, HORIZONTAL, NORTH)
         addComponent(clearButton, 2, y++, 1, 1, HORIZONTAL, NORTH)
-        addComponent(printButton, 2, y++, 1, 1, HORIZONTAL, NORTH)
+//        addComponent(printButton, 2, y++, 1, 1, HORIZONTAL, NORTH)
         addComponent(quitButton, 2, y++, 1, 1, HORIZONTAL, NORTH)
     }
 
@@ -162,10 +166,10 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
 
     private fun numPointsSpinnerMouseWheelMoved(e: MouseWheelEvent) {
         val wheelRotation = e.wheelRotation
-        val value = (numberOfEdgePointsSpinner.value as Int)
+        val value = (numberOfRaysSpinner.value as Int)
 
-        if (value in MIN_POINTS_VALUE..MAX_POINTS_VALUE) {
-            numberOfEdgePointsSpinner.value = value + wheelRotation
+        if (value in MIN_RAYS_VALUE..MAX_RAYS_VALUE) {
+            numberOfRaysSpinner.value = value + wheelRotation
             doodlePanel.setNumPoints(wheelRotation)
         }
     }
