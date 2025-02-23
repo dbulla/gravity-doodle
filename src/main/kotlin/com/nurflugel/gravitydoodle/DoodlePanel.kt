@@ -1,5 +1,6 @@
 package com.nurflugel.gravitydoodle
 
+//import com.nurflugel.gravitydoodle.SwingWorker.get
 import java.awt.*
 import java.awt.RenderingHints.KEY_ANTIALIASING
 import java.awt.RenderingHints.VALUE_ANTIALIAS_ON
@@ -10,14 +11,15 @@ import java.awt.print.Printable
 import java.awt.print.PrinterException
 import java.time.Instant
 import javax.swing.JPanel
+import javax.swing.SwingWorker
 import kotlin.math.sqrt
 import kotlin.random.Random
 
 
 class DoodlePanel(val theFrame: DoodleFrame) : JPanel(true), MouseListener, MouseMotionListener, Printable {
 
-//    private val stellarMass = 1e16
-//    private val planetaryMass = 1e13
+    //    private val stellarMass = 1e16
+    //    private val planetaryMass = 1e13
     private val stellarMass = 1e14
     private val planetaryMass = 1e12
 
@@ -31,7 +33,7 @@ class DoodlePanel(val theFrame: DoodleFrame) : JPanel(true), MouseListener, Mous
     private var sides: List<Side> = listOf()
     private var locusList: MutableList<Locus> = mutableListOf()
     private var selectedLocus: Locus? = null
-    private lateinit var worker: SwingWorker
+    private lateinit var worker: javax.swing.SwingWorker<String, Any>
 
     companion object {
         private const val LOCUS_POINT_RADIUS: Int = 10
@@ -45,14 +47,12 @@ class DoodlePanel(val theFrame: DoodleFrame) : JPanel(true), MouseListener, Mous
     init {
         addMouseListener(this)
         addMouseMotionListener(this)
-
     }
 
-    @Suppress("DuplicatedCode")
     fun wander() {
         val dt = .000001 // Time step
-        worker = object : SwingWorker() {
-            override fun construct(): Any {
+        worker = object : SwingWorker<String, Any>() {
+            override fun doInBackground(): String? {
                 while (theFrame.getUiManager().isWandering) {
                     if (locusList.isNotEmpty()) {
                         for (j in locusList.indices) {
@@ -78,15 +78,14 @@ class DoodlePanel(val theFrame: DoodleFrame) : JPanel(true), MouseListener, Mous
                     }
                     repaint()
                 }
-                return "Success" // return value not used by this program
+                return "Success"
             }
         }
-        worker.start()
+        worker.execute()
     }
 
     fun stopWandering() {
         theFrame.getUiManager().setWandering(false)
-        worker.interrupt()
     }
 
     private fun drawInnerStuffForLocus(graphics2D: Graphics2D, locus: Locus) {

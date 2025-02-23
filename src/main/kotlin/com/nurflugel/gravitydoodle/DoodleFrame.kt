@@ -5,6 +5,7 @@ import java.awt.BorderLayout.CENTER
 import java.awt.BorderLayout.EAST
 import java.awt.event.*
 import javax.swing.JFrame
+import javax.swing.SwingUtilities
 
 /** Created by IntelliJ IDEA. User: Douglas Bullard Date: Oct 26, 2003 Time: 4:21:02 PM To change this template use Options | File Templates.  */
 class DoodleFrame : JFrame() {
@@ -82,8 +83,10 @@ class DoodleFrame : JFrame() {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            val doodleFrame = DoodleFrame()
-            doodleFrame.isVisible = true
+            SwingUtilities.invokeLater {
+                val doodleFrame = DoodleFrame()
+                doodleFrame.isVisible = true
+            }
         }
     }
 
