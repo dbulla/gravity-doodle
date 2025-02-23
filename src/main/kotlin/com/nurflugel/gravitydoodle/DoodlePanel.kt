@@ -1,6 +1,5 @@
 package com.nurflugel.gravitydoodle
 
-//import com.nurflugel.gravitydoodle.SwingWorker.get
 import com.nurflugel.gravitydoodle.Constants.Companion.G
 import com.nurflugel.gravitydoodle.Constants.Companion.dt
 import com.nurflugel.gravitydoodle.Constants.Companion.sunIsImmobile

@@ -18,5 +18,7 @@ Click again, and you'll add "planets" - each has a random mass, and each sends o
 Change the "Movement" setting from fixed to wandering, and the planets start to move with random initial velocities:
 ![images/Screenshot_3.png](images/Screenshot_3.png)
 
-You can change the number of rays by changing the "Number of Rays" spinner.  Too few doesn't look as cool, too many gets cluttered 
+Notes:
+- You can change the number of rays by changing the "Number of Rays" spinner.  Too few doesn't look as cool, too many gets cluttered 
 when there are a lot of planets.
+- You can hide the control panel by clicking on the screen with the cmd/windows held down.  Do this with "Full Screen" mode, and it'll fill your entire screen.
