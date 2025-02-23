@@ -21,4 +21,8 @@ Change the "Movement" setting from fixed to wandering, and the planets start to 
 Notes:
 - You can change the number of rays by changing the "Number of Rays" spinner.  Too few doesn't look as cool, too many gets cluttered 
 when there are a lot of planets.
+- When a planet goes off-screen, it stops drawing rays
 - You can hide the control panel by clicking on the screen with the cmd/windows held down.  Do this with "Full Screen" mode, and it'll fill your entire screen.
+- Values for the planetary masses, dt, etc. are in the Constants.kt file
+  - Smaller values for dt will make it run more slowly, but the calculations are more accurate
+  - Larger values of mass for the planets make them interact more with each other, but can also cause them to fling themselves off the screen.
