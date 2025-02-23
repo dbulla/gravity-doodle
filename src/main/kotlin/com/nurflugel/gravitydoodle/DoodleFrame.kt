@@ -13,8 +13,8 @@ class DoodleFrame : JFrame() {
     private var uiManager: UiManager
     private var useFullScreenMode = false
 
-//        private var defaultScreenSize = Toolkit.getDefaultToolkit().screenSize
-    private var defaultScreenSize = Dimension(800, 300)
+        private var defaultScreenSize = Toolkit.getDefaultToolkit().screenSize
+//    private var defaultScreenSize = Dimension(800, 300)
 
 
     init {
@@ -33,8 +33,8 @@ class DoodleFrame : JFrame() {
                 screen.fullScreenWindow = myWindow
             }
 
-            doodlePanel = DoodlePanel(this)
             uiManager = UiManager(this)
+            doodlePanel = DoodlePanel(this, uiManager)
             contentPane.layout = BorderLayout()
             contentPane.add(CENTER, doodlePanel)
             contentPane.add(EAST, uiManager)

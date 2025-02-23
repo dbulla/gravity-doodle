@@ -1,8 +1,5 @@
 package com.nurflugel.gravitydoodle
 
-import kotlin.div
-
-
 class Line
 /** m=(y1-y2)/(x1-x2) b=y-mx. */
 internal constructor(private val start: Point, private val end: Point) {

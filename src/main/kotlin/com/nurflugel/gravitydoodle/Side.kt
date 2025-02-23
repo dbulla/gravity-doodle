@@ -1,7 +1,5 @@
 package com.nurflugel.gravitydoodle
 
-
-
 /** Representation of a side of the doodle panel - a straight line */
 open class Side
     (
