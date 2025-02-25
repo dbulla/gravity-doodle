@@ -1,12 +1,12 @@
 package com.nurflugel.gravitydoodle
 
-import com.nurflugel.gravitydoodle.Constants.Companion.G
-import com.nurflugel.gravitydoodle.Constants.Companion.dt
-import com.nurflugel.gravitydoodle.Constants.Companion.sunIsImmobile
 import java.awt.*
+import java.awt.Color.black
 import java.awt.RenderingHints.KEY_ANTIALIASING
 import java.awt.RenderingHints.VALUE_ANTIALIAS_ON
-import java.awt.event.*
+import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
+import java.awt.event.MouseMotionListener
 import java.awt.geom.GeneralPath
 import java.awt.print.PageFormat
 import java.awt.print.Printable
@@ -18,11 +18,10 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 
-class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(true), MouseListener, MouseMotionListener, Printable {
+class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val settings: Settings) : JPanel(true), MouseListener, MouseMotionListener, Printable {
     private var doodleWidth = 0
     private var doodleHeight = 0
-    private var rayColor = Color(150, 0, 0)
-    private var numPointsPerSide: Int = INITIAL_RAYS_VALUE
+    private var numPointsPerSide: Int = settings.initialRaysValue
     private var sides: List<Side> = listOf()
     private var locusList: MutableList<Locus> = mutableListOf()
     private var selectedLocus: Locus? = null
@@ -37,7 +36,7 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
         const val YOFFSET = 0
     }
 
-    init {
+    fun initialize() {
         addMouseListener(this)
         addMouseMotionListener(this)
     }
@@ -46,7 +45,7 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
         // Time step
         worker = object : SwingWorker<String, Any>() {
             override fun doInBackground(): String? {
-                while (uiManager.isWandering) {
+                while (controlPanel.isWandering) {
                     if (locusList.isNotEmpty()) {
                         for (j in locusList.indices) {
                             for (k in j + 1..<locusList.size) {
@@ -56,17 +55,17 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
                                 val dx = p2.x - p1.x
                                 val dy = p2.y - p1.y
                                 val distSq = dx * dx + dy * dy
-                                val force = G * p1.mass * p2.mass / distSq
+                                val force = settings.G * p1.mass * p2.mass / distSq
 
                                 val fx = force * dx / sqrt(distSq)
                                 val fy = force * dy / sqrt(distSq)
 
-                                p1.applyForce(fx, fy, dt)
-                                p2.applyForce(-fx, -fy, dt)
+                                p1.applyForce(fx, fy)
+                                p2.applyForce(-fx, -fy)
                             }
                         }
                         locusList.forEachIndexed { i, locus ->
-                            if (i > 0 || !sunIsImmobile) locus.updatePosition(dt)
+                            if (i > 0 || !settings.firstPointIsSun) locus.updatePosition(settings.dt)
                         }
                     }
                     repaint()
@@ -120,35 +119,24 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
             theFrame.invertControlPanelVisibility() // use the OS full screen mechanism
         }
         else {
-            if (uiManager.isAddLocusMode) {
+            if (controlPanel.isAddLocusMode) {
                 val point = e.point
-                val newLocus = when (locusList.isEmpty()) {
-                    true -> Locus(point.getX(), point.getY(), 0.0, 0.0, rand.nextDouble() * Constants.STELLAR_MASS)
+                val newLocus = when (locusList.isEmpty() && settings.firstPointIsSun) {
+                    true -> Locus(point.getX(), point.getY(), 0.0, 0.0, rand.nextDouble() * settings.stellarMass, settings.dt)
                     else -> {
-
+                        val vX = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
+                        val vY = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
                         Locus(
-                            point.getX(),
-                            point.getY(),
-                            (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5,
-                            (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5,
-                            (rand.nextDouble() * Constants.PLANETARY_MASS) // significant mass, or use 100 for no mass
+                            point.getX(), point.getY(), vX, vY, settings.regularPlanetaryMass, settings.dt
                         )
                     }
                 }
-
                 locusList.add(newLocus)
             }
             else {
-                val x = e.x
-                val y = e.y
-                val numLocusPoints: Int = locusList.size
-
-                for (i in 0..<numLocusPoints) {
-                    determineSelectedLocusPoint(i, x, y)
-                }
+                (0..<locusList.size).forEach { determineSelectedLocusPoint(it, e.x, e.y) }
             }
         }
-
         repaint()
     }
 
@@ -164,7 +152,7 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
     }
 
     override fun mouseDragged(e: MouseEvent) {
-        if (uiManager.isMoveLocusMode) {
+        if (controlPanel.isMoveLocusMode) {
             val x = e.x
             val y = e.y
 
@@ -190,7 +178,7 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
 
     /** Invoked when the mouse cursor has been moved onto a component but no buttons have been pushed.  */
     override fun mouseMoved(e: MouseEvent) {
-        if (uiManager.isMoveLocusMode) {
+        if (controlPanel.isMoveLocusMode) {
             val x = e.x
             val y = e.y
 
@@ -204,7 +192,6 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
                 if (((deltaX * deltaX) + (deltaY * deltaY)) < MIN_LOCUS_DISTANCE) {
                     selectedLocus = locusPoint
                     repaint()
-
                     break
                 }
             }
@@ -212,20 +199,21 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
     }
 
     private fun drawLocusPoint(graphics2D: Graphics2D, locus: Locus, index: Int) {
-        //        if (theFrame.isMoveLocusMode) {
-        //            val theSelectedLocus: Locus? = getSelectedLocus()
-
-        //            if (locus == theSelectedLocus) {
-
         graphics2D.setPaintMode()
 
         val oldColor = graphics2D.color
+        var radius: Int
 
-        graphics2D.color = Color.black
-        //                graphics2D.color = Color.red
-        val radius = when (index) {
-            0    -> LOCUS_POINT_RADIUS * 2
-            else -> LOCUS_POINT_RADIUS
+        when {
+            index == 0 && settings.firstPointIsSun -> {
+                graphics2D.color = Color.orange
+                radius = LOCUS_POINT_RADIUS * 2
+            }
+
+            else                                   -> {
+                graphics2D.color = black
+                radius = LOCUS_POINT_RADIUS
+            }
         }
         graphics2D.fillArc(
             (locus.x - (radius / 2.0)).toInt(),
@@ -236,9 +224,6 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
             360
         )
         graphics2D.color = oldColor
-
-        //            }
-        //        }
     }
 
     private fun getSelectedLocus(): Locus? {
@@ -247,8 +232,9 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
 
     /** Create the points around the perimeter of the drawing */
     private fun initializePoints() {
+        val useFrameBorder = controlPanel.frameBorderButton.isSelected
         sides = when {
-            uiManager.frameBorderButton.isSelected -> {
+            useFrameBorder -> {
                 val sides0 = Side(Point(XOFFSET, YOFFSET), Point(XOFFSET + doodleWidth, YOFFSET), numPointsPerSide)
                 val sides1 = Side(Point(XOFFSET + doodleWidth, YOFFSET), Point(XOFFSET + doodleWidth, YOFFSET + doodleHeight), numPointsPerSide)
                 val sides2 = Side(Point(XOFFSET + doodleWidth, YOFFSET + doodleHeight), Point(XOFFSET, YOFFSET + doodleHeight), numPointsPerSide)
@@ -256,9 +242,8 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
                 listOf(sides0, sides1, sides2, sides3)
             }
 
-            else                                   -> {
-                //      val circularSide=CircularSide(doodleHeight/2.0, Point(doodleWidth/2.0, doodleHeight/2.0),nuwmPointsPerSide)
-                val circularSide = CircularSide(doodleWidth * 2.0, Point(doodleWidth / 2.0, doodleHeight / 2.0), numPointsPerSide)
+            else           -> {
+                val circularSide = CircularSide(doodleWidth * 2000.0, Point(doodleWidth / 2.0, doodleHeight / 2.0), numPointsPerSide)
                 listOf(circularSide)
             }
         }
@@ -266,28 +251,24 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
 
     override fun paint(g: Graphics) {
         val graphics2D = g as Graphics2D
-        var locus: Locus
-
-        //        isPrinting = theFrame.isPrinting
         doodleWidth = width - (2 * XOFFSET)
         doodleHeight = height - (2 * YOFFSET)
 
+        // draw the background
         drawBounds(graphics2D)
 
         // Draw the "rays"
-        (0..<locusList.size).forEach {
-            locus = locusList[it]
-            if (locus.x > 0 && locus.x < doodleWidth && locus.y > 0 && locus.y < doodleHeight) {
-                drawInnerStuffForLocus(graphics2D, locus)
-            }
-        }
-        // do this last so the XOR stuff doesn't make it wierd
-        (0..<locusList.size).forEach {
-            locus = locusList[it]
-            if (locus.x > 0 && locus.x < doodleWidth && locus.y > 0 && locus.y < doodleHeight) {
-                drawLocusPoint(graphics2D, locus, it)
-            }
-        }
+        if (settings.drawRays)
+            (0..<locusList.size).forEach { drawInnerStuffForLocus(graphics2D, locusList[it]) }
+
+        // do this last so the XOR stuff doesn't make it look wierd
+        (0..<locusList.size).forEach { drawLocusPoint(graphics2D, locusList[it], it) }
+
+        // now remove any points outside the screen from the list
+        locusList = locusList
+            .filter { (it.x > 0) && (it.x < doodleWidth) && (it.y > 0) && (it.y < doodleHeight) }
+            .toMutableList()
+
         drawBorder(graphics2D)
     }
 
@@ -333,7 +314,11 @@ class DoodlePanel(val theFrame: DoodleFrame, val uiManager: UiManager) : JPanel(
         //        background = Color.red
         //        background = rayColor
         //        return background
-        return rayColor
+
+        // actually needed because of JPanel's invocation before the class is fully instantiated
+        @Suppress("UNNECESSARY_SAFE_CALL")
+        return settings?.rayColor
+               ?: Color(150, 0, 0)
     }
 
     /** Invoked when the mouse enters a component.  */

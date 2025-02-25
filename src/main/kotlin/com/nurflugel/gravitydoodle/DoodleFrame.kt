@@ -1,20 +1,23 @@
 package com.nurflugel.gravitydoodle
 
-import java.awt.*
+import java.awt.BorderLayout
 import java.awt.BorderLayout.CENTER
 import java.awt.BorderLayout.EAST
-import java.awt.event.*
+import java.awt.GraphicsEnvironment
+import java.awt.Toolkit
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
 
 /** Created by IntelliJ IDEA. User: Douglas Bullard Date: Oct 26, 2003 Time: 4:21:02 PM To change this template use Options | File Templates.  */
 class DoodleFrame : JFrame() {
-    private var doodlePanel: DoodlePanel
-    private var uiManager: UiManager
+    private var controlPanel: ControlPanel
+    internal var doodlePanel: DoodlePanel
     private var useFullScreenMode = false
-
-        private var defaultScreenSize = Toolkit.getDefaultToolkit().screenSize
-//    private var defaultScreenSize = Dimension(800, 300)
+    private val settings = Settings()
+    private var defaultScreenSize = Toolkit.getDefaultToolkit().screenSize
+    //    private var defaultScreenSize = Dimension(800, 300)
 
 
     init {
@@ -32,33 +35,28 @@ class DoodleFrame : JFrame() {
                 isResizable = !isFullScreenSupported
                 screen.fullScreenWindow = myWindow
             }
-
-            uiManager = UiManager(this)
-            doodlePanel = DoodlePanel(this, uiManager)
+            controlPanel = ControlPanel(this, settings)
+            doodlePanel = DoodlePanel(this, controlPanel, settings)
+            controlPanel.initialize() // this is where Spring injection is nice, avoids "chicken and the egg" dependencies
+            doodlePanel.initialize()
             contentPane.layout = BorderLayout()
             contentPane.add(CENTER, doodlePanel)
-            contentPane.add(EAST, uiManager)
+            contentPane.add(EAST, controlPanel)
 
             size = defaultScreenSize
-
-            addWindowListener(object : WindowAdapter() {
-                override fun windowClosing(evt: WindowEvent) {
-                    System.exit(0)
-                }
-            })
-
         } finally {
-
+            isVisible = true
+            defaultScreenSize = Toolkit.getDefaultToolkit().screenSize
         }
 
         addWindowListener(object : WindowAdapter() {
             override fun windowClosing(evt: WindowEvent?) {
-                System.exit(0)
+                controlPanel.exit()
             }
 
             override fun windowStateChanged(e: WindowEvent?) {
                 super.windowStateChanged(e)
-                println("windowStateChanged e = ${e}")
+                println("windowStateChanged e = $e")
             }
         })
     }
@@ -72,12 +70,8 @@ class DoodleFrame : JFrame() {
     }
 
     fun invertControlPanelVisibility() {
-        uiManager.isVisible = !uiManager.isVisible
+        controlPanel.isVisible = !controlPanel.isVisible
         doodlePanel.refresh()
-    }
-
-    fun getDoodlePanel(): DoodlePanel {
-        return doodlePanel
     }
 
     companion object {
@@ -88,10 +82,6 @@ class DoodleFrame : JFrame() {
                 doodleFrame.isVisible = true
             }
         }
-    }
-
-    fun getUiManager(): UiManager {
-        return uiManager;
     }
 
 }

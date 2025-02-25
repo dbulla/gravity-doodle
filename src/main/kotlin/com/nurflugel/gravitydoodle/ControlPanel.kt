@@ -1,42 +1,34 @@
 package com.nurflugel.gravitydoodle
 
 import java.awt.*
-import java.awt.Font.PLAIN
-import java.awt.GridBagConstraints.CENTER
-import java.awt.GridBagConstraints.EAST
-import java.awt.GridBagConstraints.HORIZONTAL
-import java.awt.GridBagConstraints.NORTH
+import java.awt.GridBagConstraints.*
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import java.awt.event.MouseWheelEvent
-import java.awt.image.BufferedImage
-import java.awt.image.BufferedImage.TYPE_INT_RGB
-import java.io.File
-import javax.imageio.ImageIO
 import javax.swing.*
 import javax.swing.BorderFactory.createTitledBorder
 import javax.swing.BoxLayout.Y_AXIS
 import javax.swing.border.EtchedBorder
 import kotlin.system.exitProcess
 
-private const val MIN_RAYS_VALUE = 2
-private const val MAX_RAYS_VALUE = 200
-const val INITIAL_RAYS_VALUE = 80
 
 /**
  * @author Douglas Bullard
  */
-class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListener {
+class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPanel(BorderLayout()), KeyListener {
+
     private val addLocusPointsRadioButton = JRadioButton("Add New Locus Points")
     val frameBorderButton = JRadioButton("Frame Border")
     private val circularBorderButton = JRadioButton("Circular Border")
     private val moveLocusPointsRadioButton = JRadioButton("Move Locus Points")
     private val removeLocusPointsRadioButton = JRadioButton("Remove Locus Points")
     private val fixedModeRadioButton = JRadioButton("Fixed Mode")
-    val wanderModeRadioButton = JRadioButton("Wander Mode")
+    val animationModeRadioButton = JRadioButton("Animation Mode")
 
-    private val sunIsImmobileCheckbox = JCheckBox("Sun is Immobile", Constants.sunIsImmobile)
+    private val sunCheckbox = JCheckBox("First point is a sun")
+    private val bigPlanetsCheckbox = JCheckBox("Planets are very heavy (wilder movement)")
+    private val drawRaysCheckbox = JCheckBox("Draw rays")
 
     private var addMoveRemoteButtonGroup = ButtonGroup()
     private var fixedWanderButtonGroup = ButtonGroup()
@@ -49,16 +41,12 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
 
     private val clearButton = JButton("Clear")
     private val quitButton = JButton("Quit")
-//    private val printButton = JButton("Print")
     private lateinit var doodlePanel: DoodlePanel
 
     private val numberOfRaysLabel = JLabel("Number of Rays: ")
-    private val numberOfRaysSpinner = JSpinner(SpinnerNumberModel(INITIAL_RAYS_VALUE, MIN_RAYS_VALUE, MAX_RAYS_VALUE, 1))
+    private val numberOfRaysSpinner = JSpinner(SpinnerNumberModel(settings.initialRaysValue, settings.minRaysValue, settings.maxRaysValue, 1))
 
-    /**
-     * Creates new form ControlPanel
-     */
-    init {
+    fun initialize() {
         initComponents()
         layoutComponents()
         addActionListeners()
@@ -71,15 +59,20 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
             val currentValue = numberOfRaysSpinner.value.toString().toInt()
             when (e.keyCode) {
                 // "-"
-                45 -> if (currentValue > MIN_RAYS_VALUE) numberOfRaysSpinner.value = numberOfRaysSpinner.previousValue
+                45 -> if (currentValue > settings.minRaysValue) setSpinnerValue(numberOfRaysSpinner.previousValue)
                 // "+"
-                61 -> if (currentValue < MAX_RAYS_VALUE) numberOfRaysSpinner.value = numberOfRaysSpinner.nextValue
+                61 -> if (currentValue < settings.maxRaysValue) setSpinnerValue(numberOfRaysSpinner.nextValue)
             }
         }
     }
 
+    private fun setSpinnerValue(value: Any) {
+        numberOfRaysSpinner.value = value
+        settings.numberOfRays = value.toString().toInt()
+    }
+
     private fun initComponents() {
-        doodlePanel = doodleFrame.getDoodlePanel()
+        doodlePanel = doodleFrame.doodlePanel
         add(contentPanel)
         layout = GridBagLayout()
 
@@ -93,8 +86,13 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
         locusRadioButtonPanel.add(moveLocusPointsRadioButton)
         locusRadioButtonPanel.add(removeLocusPointsRadioButton)
 
-        numberOfRaysLabel.horizontalAlignment=SwingConstants.RIGHT
-        sunIsImmobileCheckbox.horizontalAlignment = SwingConstants.RIGHT
+        numberOfRaysLabel.horizontalAlignment = SwingConstants.RIGHT
+        sunCheckbox.horizontalAlignment = SwingConstants.RIGHT
+        sunCheckbox.isSelected = settings.firstPointIsSun
+        bigPlanetsCheckbox.isSelected = settings.bigPlanets
+        numberOfRaysSpinner.value = settings.numberOfRays
+
+        drawRaysCheckbox.isSelected = settings.drawRays
 
         borderButtonPanel.layout = BoxLayout(borderButtonPanel, Y_AXIS)
         borderButtonPanel.border = createTitledBorder(EtchedBorder(), "Doodle Boundary")
@@ -107,10 +105,10 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
         fixedWanderModePanel.layout = BoxLayout(fixedWanderModePanel, Y_AXIS)
         fixedWanderModePanel.border = createTitledBorder(EtchedBorder(), "Movement")
         fixedWanderModePanel.add(fixedModeRadioButton)
-        fixedWanderModePanel.add(wanderModeRadioButton)
+        fixedWanderModePanel.add(animationModeRadioButton)
         fixedModeRadioButton.isSelected = true
         fixedWanderButtonGroup.add(fixedModeRadioButton)
-        fixedWanderButtonGroup.add(wanderModeRadioButton)
+        fixedWanderButtonGroup.add(animationModeRadioButton)
 
         numberOfRaysSpinner.toolTipText = "Controls how many points per side"
 
@@ -121,37 +119,65 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
     }
 
     private fun addActionListeners() {
-        clearButton.addActionListener { doodleFrame.getDoodlePanel().clear() }
-        quitButton.addActionListener { exitProcess(0) }
-        wanderModeRadioButton.addActionListener { doodleFrame.getDoodlePanel().wander() }
+        clearButton.addActionListener { doodlePanel.clear() }
+        quitButton.addActionListener {
+            exit()
+        }
+        animationModeRadioButton.addActionListener { doodlePanel.wander() }
         fixedModeRadioButton.addActionListener { setWandering(false) }
-        numberOfRaysSpinner.addChangeListener { doodleFrame.getDoodlePanel().setNumPoints(numberOfRaysSpinner.model.value.toString().toInt()) }
+        numberOfRaysSpinner.addChangeListener {
+            val numPointsPerSide = numberOfRaysSpinner.model.value.toString().toInt()
+            doodlePanel.setNumPoints(numPointsPerSide)
+            settings.numberOfRays = numPointsPerSide
+        }
         numberOfRaysSpinner.addMouseWheelListener { numPointsSpinnerMouseWheelMoved(it) }
-//        printButton.addActionListener { printScreen() }
-        frameBorderButton.addActionListener { doodleFrame.getDoodlePanel().refresh() }
-        circularBorderButton.addActionListener { doodleFrame.getDoodlePanel().refresh() }
+        frameBorderButton.addActionListener { doodlePanel.refresh() }
+        circularBorderButton.addActionListener { doodlePanel.refresh() }
+
         // need to have _something_ registered to listen for key clicks, as jPanel and jFrame don't weem to work... maybe event thread issue?
         fixedModeRadioButton.addKeyListener(ButtonKeyPressListener())
-        sunIsImmobileCheckbox.addActionListener { Constants.sunIsImmobile = sunIsImmobileCheckbox.isSelected }
+        sunCheckbox.addActionListener { settings.firstPointIsSun = sunCheckbox.isSelected }
+        bigPlanetsCheckbox.addActionListener { settings.bigPlanets = bigPlanetsCheckbox.isSelected }
+        drawRaysCheckbox.addActionListener {
+
+            settings.drawRays = drawRaysCheckbox.isSelected
+            doodlePanel.refresh()
+        }
+    }
+
+    fun exit(): Nothing {
+        settings.storeData()
+        exitProcess(0)
     }
 
     /** grid bag stuff */
     private fun layoutComponents() {
         /// left hand side
-        addComponent(locusRadioButtonPanel, 0, 0, 2, 2, HORIZONTAL, NORTH)
-        addComponent(numberOfRaysLabel, 0, 2, 1, 1, HORIZONTAL, EAST)
-        addComponent(numberOfRaysSpinner, 1, 2, 1, 1, HORIZONTAL, CENTER, 12)
-        addComponent(sunIsImmobileCheckbox, 0, 3, 1, 1, GridBagConstraints.EAST, CENTER)
+        addComponent(locusRadioButtonPanel, 0, 0, 2, 2)
+        addComponent(numberOfRaysLabel, 0, 2, anchor = WEST, fill = NONE)
+        addComponent(numberOfRaysSpinner, 1, 2, fill = HORIZONTAL)
+        addComponent(sunCheckbox, 0, 3, fill = EAST, anchor = WEST)
+        addComponent(bigPlanetsCheckbox, 0, 4, fill = EAST, anchor = WEST)
+        addComponent(drawRaysCheckbox, 0, 5, fill = EAST, anchor = WEST)
         /// right hand side controls
         var y = 0
-        addComponent(fixedWanderModePanel, 2, y++, 1, 1, HORIZONTAL, NORTH)
-        addComponent(borderButtonPanel, 2, y++, 1, 1, HORIZONTAL, NORTH)
-        addComponent(clearButton, 2, y++, 1, 1, HORIZONTAL, NORTH)
-//        addComponent(printButton, 2, y++, 1, 1, HORIZONTAL, NORTH)
-        addComponent(quitButton, 2, y++, 1, 1, HORIZONTAL, NORTH)
+        addComponent(fixedWanderModePanel, 2, y++)
+        addComponent(borderButtonPanel, 2, y++)
+        addComponent(clearButton, 2, y++)
+        addComponent(quitButton, 2, y++)
     }
 
-    private fun addComponent(component: Component, gridX: Int, gridY: Int, gridWidth: Int, gridHeight: Int, fill: Int, anchor: Int, iPadX: Int = 0, iPadY: Int = 0) {
+    private fun addComponent(
+        component: Component,
+        gridX: Int,
+        gridY: Int,
+        gridWidth: Int = 1,
+        gridHeight: Int = 1,
+        fill: Int = HORIZONTAL,
+        anchor: Int = NORTH,
+        iPadX: Int = 0,
+        iPadY: Int = 0,
+    ) {
         val gridBagConstraints = GridBagConstraints()
         gridBagConstraints.gridx = gridX
         gridBagConstraints.gridy = gridY
@@ -168,18 +194,18 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
         val wheelRotation = e.wheelRotation
         val value = (numberOfRaysSpinner.value as Int)
 
-        if (value in MIN_RAYS_VALUE..MAX_RAYS_VALUE) {
+        if (value in settings.minRaysValue..settings.maxRaysValue) {
             numberOfRaysSpinner.value = value + wheelRotation
             doodlePanel.setNumPoints(wheelRotation)
         }
     }
 
     fun setWandering(isWandering: Boolean) {
-        wanderModeRadioButton.isSelected = isWandering
+        animationModeRadioButton.isSelected = isWandering
     }
 
     val isWandering: Boolean
-        get() = wanderModeRadioButton.isSelected
+        get() = animationModeRadioButton.isSelected
 
     val isAddLocusMode: Boolean
         get() = addLocusPointsRadioButton.isSelected
@@ -189,39 +215,6 @@ class UiManager(val doodleFrame: DoodleFrame) : JPanel(BorderLayout()), KeyListe
 
     val isRemoveLocusMode: Boolean
         get() = removeLocusPointsRadioButton.isSelected // End of variables declaration//GEN-END:variables
-
-    private fun printScreen() {
-        //        val printJob = PrinterJob.getPrinterJob()
-        //
-        //        printJob.setPrintable(doodleFrame.getDoodlePanel())
-        //
-        //        if (printJob.printDialog()) {
-        //            try {
-        //                isPrinting = true
-        //                printJob.print()
-        //                isPrinting = false
-        //            } catch (ex: Exception) {
-        //                ex.printStackTrace()
-        //            }
-        //        }
-        val WIDTH = 2560
-        val HEIGHT = 1440
-        val localGraphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment()
-        val bufferedImage = BufferedImage(WIDTH, HEIGHT, TYPE_INT_RGB)
-        val graphics2D = localGraphicsEnvironment.createGraphics(bufferedImage)
-
-        val doodlePanel = doodlePanel
-        graphics2D.clearRect(0, 0, WIDTH, HEIGHT)
-        //        graphics2D.setRenderingHints(aliasedRenderingHints) // todo get this is it works
-        graphics2D.font = Font("Helvetica", PLAIN, 13)
-
-        val bImg = BufferedImage(doodlePanel.width, doodlePanel.height, TYPE_INT_RGB)
-        val cg = bImg.createGraphics()
-        doodlePanel.paintAll(cg)
-        //        doodlePanel.paint(cg)
-        val imageFile = File("dibble2.png")
-        ImageIO.write(bufferedImage, "png", imageFile)
-    }
 
     override fun keyPressed(e: KeyEvent) {
         println(" UiManager:::key pressed: ${e.keyCode}")
