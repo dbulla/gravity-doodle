@@ -28,6 +28,7 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
 
     private val sunCheckbox = JCheckBox("First point is a sun")
     private val bigPlanetsCheckbox = JCheckBox("Planets are very heavy (wilder movement)")
+    private val bigSunCheckbox = JCheckBox("Big sun (faster orbits)")
     private val drawRaysCheckbox = JCheckBox("Draw rays")
 
     private var addMoveRemoteButtonGroup = ButtonGroup()
@@ -44,7 +45,7 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
     private lateinit var doodlePanel: DoodlePanel
 
     private val numberOfRaysLabel = JLabel("Number of Rays: ")
-    private val numberOfRaysSpinner = JSpinner(SpinnerNumberModel(settings.initialRaysValue, settings.minRaysValue, settings.maxRaysValue, 1))
+    private val numberOfRaysSpinner = JSpinner(SpinnerNumberModel(settings.initialRaysValue, settings.minRaysValue, settings.maxRaysValue, 2))
 
     fun initialize() {
         initComponents()
@@ -90,6 +91,7 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         sunCheckbox.horizontalAlignment = SwingConstants.RIGHT
         sunCheckbox.isSelected = settings.firstPointIsSun
         bigPlanetsCheckbox.isSelected = settings.bigPlanets
+        bigSunCheckbox.isSelected = settings.bigSun
         numberOfRaysSpinner.value = settings.numberOfRays
 
         drawRaysCheckbox.isSelected = settings.drawRays
@@ -136,10 +138,12 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
 
         // need to have _something_ registered to listen for key clicks, as jPanel and jFrame don't weem to work... maybe event thread issue?
         fixedModeRadioButton.addKeyListener(ButtonKeyPressListener())
-        sunCheckbox.addActionListener { settings.firstPointIsSun = sunCheckbox.isSelected }
+        sunCheckbox.addActionListener {
+            settings.firstPointIsSun = sunCheckbox.isSelected
+            bigSunCheckbox.isVisible = settings.firstPointIsSun
+        }
         bigPlanetsCheckbox.addActionListener { settings.bigPlanets = bigPlanetsCheckbox.isSelected }
         drawRaysCheckbox.addActionListener {
-
             settings.drawRays = drawRaysCheckbox.isSelected
             doodlePanel.refresh()
         }
@@ -158,13 +162,16 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         addComponent(numberOfRaysSpinner, 1, 2, fill = HORIZONTAL)
         addComponent(sunCheckbox, 0, 3, fill = EAST, anchor = WEST)
         addComponent(bigPlanetsCheckbox, 0, 4, fill = EAST, anchor = WEST)
-        addComponent(drawRaysCheckbox, 0, 5, fill = EAST, anchor = WEST)
+        addComponent(bigSunCheckbox, 0, 5, fill = EAST, anchor = WEST)
+        addComponent(drawRaysCheckbox, 0, 6, fill = EAST, anchor = WEST)
         /// right hand side controls
         var y = 0
         addComponent(fixedWanderModePanel, 2, y++)
         addComponent(borderButtonPanel, 2, y++)
         addComponent(clearButton, 2, y++)
         addComponent(quitButton, 2, y++)
+
+        bigSunCheckbox.isVisible = settings.firstPointIsSun
     }
 
     private fun addComponent(
@@ -202,6 +209,7 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
 
     fun setWandering(isWandering: Boolean) {
         animationModeRadioButton.isSelected = isWandering
+        doodlePanel.wander()
     }
 
     val isWandering: Boolean

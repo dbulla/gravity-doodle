@@ -42,38 +42,40 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
     }
 
     fun wander() {
-        // Time step
-        worker = object : SwingWorker<String, Any>() {
-            override fun doInBackground(): String? {
-                while (controlPanel.isWandering) {
-                    if (locusList.isNotEmpty()) {
-                        for (j in locusList.indices) {
-                            for (k in j + 1..<locusList.size) {
-                                val p1 = locusList[j]
-                                val p2 = locusList[k]
+//        if(!controlPanel.isWandering) {
+            // Time step
+            worker = object : SwingWorker<String, Any>() {
+                override fun doInBackground(): String? {
+                    while (controlPanel.isWandering) {
+                        if (locusList.isNotEmpty()) {
+                            for (j in locusList.indices) {
+                                for (k in j + 1..<locusList.size) {
+                                    val p1 = locusList[j]
+                                    val p2 = locusList[k]
 
-                                val dx = p2.x - p1.x
-                                val dy = p2.y - p1.y
-                                val distSq = dx * dx + dy * dy
-                                val force = settings.G * p1.mass * p2.mass / distSq
+                                    val dx = p2.x - p1.x
+                                    val dy = p2.y - p1.y
+                                    val distSq = dx * dx + dy * dy
+                                    val force = settings.G * p1.mass * p2.mass / distSq
 
-                                val fx = force * dx / sqrt(distSq)
-                                val fy = force * dy / sqrt(distSq)
+                                    val fx = force * dx / sqrt(distSq)
+                                    val fy = force * dy / sqrt(distSq)
 
-                                p1.applyForce(fx, fy)
-                                p2.applyForce(-fx, -fy)
+                                    p1.applyForce(fx, fy)
+                                    p2.applyForce(-fx, -fy)
+                                }
+                            }
+                            locusList.forEachIndexed { i, locus ->
+                                if (i > 0 || !settings.firstPointIsSun) locus.updatePosition(settings.dt)
                             }
                         }
-                        locusList.forEachIndexed { i, locus ->
-                            if (i > 0 || !settings.firstPointIsSun) locus.updatePosition(settings.dt)
-                        }
+                        repaint()
                     }
-                    repaint()
+                    return "Success"
                 }
-                return "Success"
             }
-        }
-        worker.execute()
+            worker.execute()
+//        }
     }
 
     private fun drawInnerStuffForLocus(graphics2D: Graphics2D, locus: Locus) {
@@ -118,17 +120,18 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         if (e.isMetaDown) {
             theFrame.invertControlPanelVisibility() // use the OS full screen mechanism
         }
+        else if(e.isAltDown){
+            controlPanel.setWandering(true)
+        }
         else {
             if (controlPanel.isAddLocusMode) {
                 val point = e.point
                 val newLocus = when (locusList.isEmpty() && settings.firstPointIsSun) {
-                    true -> Locus(point.getX(), point.getY(), 0.0, 0.0, rand.nextDouble() * settings.stellarMass, settings.dt)
+                    true -> Locus(point.getX(), point.getY(), 0.0, 0.0,  settings.getStellarMass(), settings.dt)
                     else -> {
                         val vX = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
                         val vY = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
-                        Locus(
-                            point.getX(), point.getY(), vX, vY, settings.regularPlanetaryMass, settings.dt
-                        )
+                        Locus(point.getX(), point.getY(), vX, vY, settings.getPlanetaryMass(), settings.dt)
                     }
                 }
                 locusList.add(newLocus)
