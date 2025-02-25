@@ -38,7 +38,6 @@ class Settings {
         bigPlanets = preferences.getBoolean("BigPlanetaryMass", false)
         numberOfRays = preferences.getInt("numberOfRays", initialRaysValue)
         drawRays = preferences.getBoolean("DrawRays", true)
-        println("Restoring firstPointIsSun = $firstPointIsSun, bigPlanets = $bigPlanets, drawRays = $drawRays, numberOfRays = $numberOfRays")
     }
 
     fun storeData() {
@@ -46,7 +45,6 @@ class Settings {
         preferences.putBoolean("bigPlanets", bigPlanets)
         preferences.putInt("numberOfRays", numberOfRays)
         preferences.putBoolean("DrawRays", drawRays)
-        println("Saving firstPointIsSun = $firstPointIsSun, bigPlanets = $bigPlanets, drawRays = $drawRays, numberOfRays = $numberOfRays")
     }
 
     init {
