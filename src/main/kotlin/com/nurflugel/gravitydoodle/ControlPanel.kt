@@ -209,7 +209,8 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
 
     fun setWandering(isWandering: Boolean) {
         animationModeRadioButton.isSelected = isWandering
-        doodlePanel.wander()
+        if (!isWandering)
+            doodlePanel.stopWorker()
     }
 
     val isWandering: Boolean

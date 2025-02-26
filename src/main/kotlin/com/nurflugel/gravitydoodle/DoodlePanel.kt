@@ -120,14 +120,14 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         if (e.isMetaDown) {
             theFrame.invertControlPanelVisibility() // use the OS full screen mechanism
         }
-        else if(e.isAltDown){
+        else if (e.isAltDown) {
             controlPanel.setWandering(true)
         }
         else {
             if (controlPanel.isAddLocusMode) {
                 val point = e.point
                 val newLocus = when (locusList.isEmpty() && settings.firstPointIsSun) {
-                    true -> Locus(point.getX(), point.getY(), 0.0, 0.0,  settings.getStellarMass(), settings.dt)
+                    true -> Locus(point.getX(), point.getY(), 0.0, 0.0, settings.getStellarMass(), settings.dt)
                     else -> {
                         val vX = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
                         val vY = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
@@ -359,5 +359,9 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         paint(g)
 
         return Printable.PAGE_EXISTS
+    }
+
+    fun stopWorker() {
+        worker.cancel(true)
     }
 }
