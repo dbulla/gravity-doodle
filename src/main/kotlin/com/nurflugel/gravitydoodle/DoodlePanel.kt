@@ -42,40 +42,45 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
     }
 
     fun wander() {
-//        if(!controlPanel.isWandering) {
-            // Time step
-            worker = object : SwingWorker<String, Any>() {
-                override fun doInBackground(): String? {
-                    while (controlPanel.isWandering) {
-                        if (locusList.isNotEmpty()) {
-                            for (j in locusList.indices) {
-                                for (k in j + 1..<locusList.size) {
-                                    val p1 = locusList[j]
-                                    val p2 = locusList[k]
-
-                                    val dx = p2.x - p1.x
-                                    val dy = p2.y - p1.y
-                                    val distSq = dx * dx + dy * dy
-                                    val force = settings.G * p1.mass * p2.mass / distSq
-
-                                    val fx = force * dx / sqrt(distSq)
-                                    val fy = force * dy / sqrt(distSq)
-
-                                    p1.applyForce(fx, fy)
-                                    p2.applyForce(-fx, -fy)
-                                }
-                            }
-                            locusList.forEachIndexed { i, locus ->
-                                if (i > 0 || !settings.firstPointIsSun) locus.updatePosition(settings.dt)
+        worker = object : SwingWorker<String, Any>() {
+            override fun doInBackground(): String? {
+                while (controlPanel.isWandering) {
+                    if (locusList.isNotEmpty()) {
+                        val locusRange: IntRange = when {
+                            settings.planetsInteractWithEachOther -> locusList.indices
+                            else                                  -> IntRange(0, 0)
+                        }
+                        for (i in locusRange) {
+                            for (j in i + 1..<locusList.size) {
+                                calculateInteractions(i, j)
                             }
                         }
-                        repaint()
+                        locusList.forEachIndexed { i, locus ->
+                            if (i > 0 || !settings.firstPointIsSun) locus.updatePosition(settings.dt)
+                        }
                     }
-                    return "Success"
+                    repaint()
                 }
+                return "Success"
             }
-            worker.execute()
-//        }
+        }
+        worker.execute()
+    }
+
+    private fun calculateInteractions(j: Int, k: Int) {
+        val p1 = locusList[j]
+        val p2 = locusList[k]
+
+        val dx = p2.x - p1.x
+        val dy = p2.y - p1.y
+        val distSq = dx * dx + dy * dy
+        val force = settings.G * p1.mass * p2.mass / distSq
+
+        val fx = force * dx / sqrt(distSq)
+        val fy = force * dy / sqrt(distSq)
+
+        p1.applyForce(fx, fy)
+        p2.applyForce(-fx, -fy)
     }
 
     private fun drawInnerStuffForLocus(graphics2D: Graphics2D, locus: Locus) {
@@ -129,8 +134,8 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
                 val newLocus = when (locusList.isEmpty() && settings.firstPointIsSun) {
                     true -> Locus(point.getX(), point.getY(), 0.0, 0.0, settings.getStellarMass(), settings.dt)
                     else -> {
-                        val vX = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
-                        val vY = (rand.nextDouble() - 0.5) * rand.nextDouble() * 10.5
+                        val vX = (if (rand.nextBoolean()) 1 else -1) * (rand.nextDouble() * 10.5 + 2.0)
+                        val vY = (if (rand.nextBoolean()) 1 else -1) * (rand.nextDouble() * 10.5 + 2.0)
                         Locus(point.getX(), point.getY(), vX, vY, settings.getPlanetaryMass(), settings.dt)
                     }
                 }

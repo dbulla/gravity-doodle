@@ -27,6 +27,7 @@ class Settings {
     var bigPlanets = false
     var bigSun = false
     var drawRays = true
+    var planetsInteractWithEachOther=true
     var numberOfRays = initialRaysValue
     private val preferences: Preferences = Preferences.userNodeForPackage(Settings::class.java)
 
@@ -52,6 +53,7 @@ class Settings {
         numberOfRays = preferences.getInt("numberOfRays", initialRaysValue)
         drawRays = preferences.getBoolean("DrawRays", true)
         bigSun = preferences.getBoolean("BigSun", false)
+        planetsInteractWithEachOther=preferences.getBoolean("planetsInteractWithEachOther", true)
     }
 
     fun storeData() {
@@ -60,6 +62,7 @@ class Settings {
         preferences.putInt("numberOfRays", numberOfRays)
         preferences.putBoolean("DrawRays", drawRays)
         preferences.putBoolean("BigSun", bigSun)
+        preferences.putBoolean("planetsInteractWithEachOther", planetsInteractWithEachOther)
     }
 
     init {
