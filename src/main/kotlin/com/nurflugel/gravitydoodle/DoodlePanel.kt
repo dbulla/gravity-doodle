@@ -131,21 +131,25 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         else {
             if (controlPanel.isAddLocusMode) {
                 val point = e.point
-                val newLocus = when (locusList.isEmpty() && settings.firstPointIsSun) {
-                    true -> Locus(point.getX(), point.getY(), 0.0, 0.0, settings.getStellarMass(), settings.dt)
-                    else -> {
-                        val vX = (if (rand.nextBoolean()) 1 else -1) * (rand.nextDouble() * 10.5 + 2.0)
-                        val vY = (if (rand.nextBoolean()) 1 else -1) * (rand.nextDouble() * 10.5 + 2.0)
-                        Locus(point.getX(), point.getY(), vX, vY, settings.getPlanetaryMass(), settings.dt)
-                    }
-                }
-                locusList.add(newLocus)
+                addPlanet(point.getX(), point.getY())
             }
             else {
                 (0..<locusList.size).forEach { determineSelectedLocusPoint(it, e.x, e.y) }
             }
         }
         repaint()
+    }
+
+    private fun addPlanet(x: Double, y: Double) {
+        val newLocus = when (locusList.isEmpty() && settings.firstPointIsSun) {
+            true -> Locus(x, y, 0.0, 0.0, settings.getStellarMass(), settings.dt)
+            else -> {
+                val vX = (rand.nextDouble(-1.0, 1.0)) * (rand.nextDouble(2.0, 21.0))
+                val vY = (rand.nextDouble(-1.0, 1.0)) * (rand.nextDouble(2.0, 21.0))
+                Locus(x, y, vX, vY, settings.getPlanetaryMass(), settings.dt)
+            }
+        }
+        locusList.add(newLocus)
     }
 
     fun setNumPoints(numPointsPerSide: Int) {
@@ -257,7 +261,8 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         }
     }
 
-    override fun paint(g: Graphics) {
+    override fun paintComponent(g: Graphics) {
+        super.paintComponent(g)
         val graphics2D = g as Graphics2D
         doodleWidth = width - (2 * XOFFSET)
         doodleHeight = height - (2 * YOFFSET)
