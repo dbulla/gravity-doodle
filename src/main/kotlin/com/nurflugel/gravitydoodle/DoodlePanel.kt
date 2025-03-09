@@ -17,7 +17,6 @@ import javax.swing.SwingWorker
 import kotlin.math.sqrt
 import kotlin.random.Random
 
-
 class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val settings: Settings) : JPanel(true), MouseListener, MouseMotionListener, Printable {
     private var doodleWidth = 0
     private var doodleHeight = 0
@@ -45,6 +44,7 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         worker = object : SwingWorker<String, Any>() {
             override fun doInBackground(): String? {
                 while (controlPanel.isWandering) {
+                    //                    val timeTaken = measureTimeMillis {
                     if (locusList.isNotEmpty()) {
                         val locusRange: IntRange = when {
                             settings.planetsInteractWithEachOther -> locusList.indices
@@ -60,7 +60,10 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
                         }
                     }
                     repaint()
+                    //                    }
+                    //                    println("Time taken: $timeTaken ms")
                 }
+
                 return "Success"
             }
         }
@@ -89,12 +92,11 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
 
         hintsMap[KEY_ANTIALIASING] = VALUE_ANTIALIAS_ON
         graphics2D.addRenderingHints(hintsMap)
-        var point: Point?
         (0 until numPoints step 2).forEach {
             val path = GeneralPath()
             path.moveTo(locus.x, locus.y)
 
-            point = points[it]
+            var point = points[it]
             path.lineTo(point.x, point.y)
 
             point = when (it) {
