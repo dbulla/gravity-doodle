@@ -31,6 +31,7 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
     private val bigSunCheckbox = JCheckBox("Big sun (faster orbits)")
     private val drawRaysCheckbox = JCheckBox("Draw rays")
     private val planetsInteractCheckbox = JCheckBox("Planets interact with each other (slower)")
+    private val planetsBounceCheckbox = JCheckBox("Planets bounce off the edges")
 
     private var addMoveRemoteButtonGroup = ButtonGroup()
     private var fixedWanderButtonGroup = ButtonGroup()
@@ -94,7 +95,8 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         bigPlanetsCheckbox.isSelected = settings.bigPlanets
         bigSunCheckbox.isSelected = settings.bigSun
         numberOfRaysSpinner.value = settings.numberOfRays
-        planetsInteractCheckbox.isSelected=settings.planetsInteractWithEachOther
+        planetsInteractCheckbox.isSelected = settings.planetsInteractWithEachOther
+        planetsBounceCheckbox.isSelected = settings.planetsBounce
 
         drawRaysCheckbox.isSelected = settings.drawRays
 
@@ -146,6 +148,7 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         }
         bigPlanetsCheckbox.addActionListener { settings.bigPlanets = bigPlanetsCheckbox.isSelected }
         planetsInteractCheckbox.addActionListener { settings.planetsInteractWithEachOther = planetsInteractCheckbox.isSelected }
+        planetsBounceCheckbox.addActionListener { settings.planetsBounce = planetsBounceCheckbox.isSelected }
         drawRaysCheckbox.addActionListener {
             settings.drawRays = drawRaysCheckbox.isSelected
             doodlePanel.refresh()
@@ -160,18 +163,19 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
     /** grid bag stuff */
     private fun layoutComponents() {
         var y = 0
-        /// left hand side
+        /// left-hand side
         addComponent(locusRadioButtonPanel, 0, y, 2, 2)
-        y=2
+        y = 2
         addComponent(numberOfRaysLabel, 0, 2, anchor = WEST, fill = NONE)
         addComponent(numberOfRaysSpinner, 1, y++, fill = HORIZONTAL)
         addComponent(sunCheckbox, 0, y++, fill = EAST, anchor = WEST)
         addComponent(bigPlanetsCheckbox, 0, y++, fill = EAST, anchor = WEST)
         addComponent(bigSunCheckbox, 0, y++, fill = EAST, anchor = WEST)
         addComponent(planetsInteractCheckbox, 0, y++, fill = HORIZONTAL, anchor = EAST)
+        addComponent(planetsBounceCheckbox, 0, y++, fill = HORIZONTAL, anchor = EAST)
         addComponent(drawRaysCheckbox, 0, y++, fill = EAST, anchor = WEST)
-        /// right hand side controls
-         y = 0
+        /// right-hand side controls
+        y = 0
         addComponent(fixedWanderModePanel, 2, y++)
         addComponent(borderButtonPanel, 2, y++)
         addComponent(clearButton, 2, y++)
@@ -214,9 +218,12 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
     }
 
     fun setWandering(isWandering: Boolean) {
+        println("Setting wandering to $isWandering")
         animationModeRadioButton.isSelected = isWandering
-        if (!isWandering)
-            doodlePanel.stopWorker()
+        when {
+            isWandering -> doodlePanel.wander()
+            else        -> doodlePanel.stopWorker()
+        }
     }
 
     val isWandering: Boolean

@@ -8,6 +8,7 @@ import kotlin.random.Random
 class Settings {
 
 
+    var planetsBounce = true
     val bigPlanetaryMass = 1e14
     val regularPlanetaryMass = 1e12
 
@@ -54,6 +55,7 @@ class Settings {
         drawRays = preferences.getBoolean("DrawRays", true)
         bigSun = preferences.getBoolean("BigSun", false)
         planetsInteractWithEachOther=preferences.getBoolean("planetsInteractWithEachOther", true)
+        planetsBounce=preferences.getBoolean("planetsBounce", true)
     }
 
     fun storeData() {
@@ -63,6 +65,7 @@ class Settings {
         preferences.putBoolean("DrawRays", drawRays)
         preferences.putBoolean("BigSun", bigSun)
         preferences.putBoolean("planetsInteractWithEachOther", planetsInteractWithEachOther)
+        preferences.putBoolean("planetsBounce", planetsBounce)
     }
 
     init {
