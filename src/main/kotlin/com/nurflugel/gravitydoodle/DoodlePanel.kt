@@ -11,12 +11,15 @@ import java.awt.geom.GeneralPath
 import java.awt.print.PageFormat
 import java.awt.print.Printable
 import java.awt.print.PrinterException
-import java.time.Instant
 import javax.swing.JPanel
 import javax.swing.SwingWorker
 import kotlin.math.sqrt
 import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val settings: Settings) : JPanel(true), MouseListener, MouseMotionListener, Printable {
     private var doodleWidth = 0
     private var doodleHeight = 0
@@ -26,9 +29,10 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
     private var selectedLocus: Locus? = null
     private lateinit var worker: SwingWorker<String, Any>
     private val epsilon = 1.0
+//    private val epsilon = 0
     var isWandering = false  // if true, animation will occur
 
-    private val rand = Random(Instant.now().nano)
+    private val rand = Random(Clock.System.now().toEpochMilliseconds())
 
     companion object {
         private const val LOCUS_POINT_RADIUS: Int = 10
@@ -61,46 +65,65 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
      * Handles exceptions gracefully and ensures proper execution and termination of the worker.
      */
     fun wander() {
+        println("Wandering...")
         worker = object : SwingWorker<String, Any>() {
-            override fun doInBackground(): String? {
+            override fun doInBackground(): String {
+                println("Starting doInBackground")
                 try {
-                    isWandering = controlPanel.isWandering
+                    val start = Clock.System.now()
+                    var count = 0
                     while (isWandering) {
-                        //                    val timeTaken = measureTimeMillis {
                         if (locusList.isNotEmpty()) {
+                            // Create a synchronized copy for iteration
+                            val locusListCopy = synchronized(locusList) {
+                                locusList.toList()
+                            }
+
                             val locusRange: IntRange = when {
-                                settings.planetsInteractWithEachOther -> locusList.indices
+                                settings.planetsInteractWithEachOther -> locusListCopy.indices
                                 else                                  -> IntRange(0, 0)
                             }
+
+                            // Calculate interactions using the copy
                             for (i in locusRange) {
-                                for (j in i + 1..<locusList.size) {
+                                for (j in i + 1..<locusListCopy.size) {
                                     calculateInteractions(i, j)
                                 }
                             }
-                            locusList.forEachIndexed { i, locus ->
-                                if (i > 0 || !settings.firstPointIsSun) {
-                                    locus.updatePosition(settings.dt)
-                                    if (settings.planetsBounce) {
-                                        locus.bounce(doodleWidth, doodleHeight)
+
+                            // Update positions
+                            synchronized(locusList) {
+                                try {
+                                    locusList.forEachIndexed { i, locus ->
+                                        if (i > 0 || !settings.firstPointIsSun) {
+                                            locus.updatePosition(settings.dt)
+                                            if (settings.planetsBounce) {
+                                                locus.bounce(doodleWidth, doodleHeight)
+                                            }
+                                        }
                                     }
+                                } catch (e: Exception) {
+                                }
+                            }
+
+                            // Remove points outside the screen
+                            if (!settings.planetsBounce) {
+                                synchronized(locusList) {
+                                    locusList = locusList
+                                        .filter {
+                                            (it.x > 0) && (it.x < doodleWidth) &&
+                                            (it.y > 0) && (it.y < doodleHeight)
+                                        }
+                                        .toMutableList()
                                 }
                             }
                         }
-                        // now remove any points outside the screen from the list
-                        if (!settings.planetsBounce) {
-                            try {
-                                locusList = locusList
-                                    .filter { (it.x > 0) && (it.x < doodleWidth) && (it.y > 0) && (it.y < doodleHeight) }
-                                    .toMutableList()
-                            } catch (e: Exception) {
-                                println("ignoring exception $e")
-                            }
-                        }
-
                         repaint()
-                        //                    }
-                        //                    println("Time taken: $timeTaken ms")
+                        count++
                     }
+                    val end = Clock.System.now()
+                    val duration: Duration = end - start
+                    println("Processed " + count + " frames in " + duration.inWholeMilliseconds + " ms = " + (count.toDouble() / duration.inWholeMilliseconds.toDouble()) + " frame/ms")
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -110,23 +133,28 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         worker.execute()
     }
 
+
     private fun calculateInteractions(j: Int, k: Int) {
-        val p1 = locusList[j]
-        val p2 = locusList[k]
+        try {
+            val p1 = locusList[j]
+            val p2 = locusList[k]
 
-        val deltaX = p2.x - p1.x
-        val deltaY = p2.y - p1.y
-        var distSq = deltaX * deltaX + deltaY * deltaY
-        if (distSq < .1) distSq = .1
-        val softenedDistanceSquared = distSq //+ epsilon
-        val force = settings.G * p1.mass * p2.mass / softenedDistanceSquared
+            val deltaX = p2.x - p1.x
+            val deltaY = p2.y - p1.y
+            var distSq = deltaX * deltaX + deltaY * deltaY
+            if (distSq < .1) distSq = .1
+            val softenedDistanceSquared = distSq //+ epsilon
+            val force = settings.G * p1.mass * p2.mass / softenedDistanceSquared
 
-        //todo epsilon is the softening parameter - use sqrt(distSq + e2)
-        val fx = force * deltaX / sqrt(softenedDistanceSquared)
-        val fy = force * deltaY / sqrt(softenedDistanceSquared)
+            //todo epsilon is the softening parameter - use sqrt(distSq + e2)
+            val fx = force * deltaX / sqrt(softenedDistanceSquared + epsilon)
+            val fy = force * deltaY / sqrt(softenedDistanceSquared + epsilon)
 
-        p1.applyForce(fx, fy)
-        p2.applyForce(-fx, -fy)
+            p1.applyForce(fx, fy)
+            p2.applyForce(-fx, -fy)
+        } catch (e: Exception) {
+            //            TODO("Not yet implemented")
+        }
     }
 
     private fun drawInnerStuffForLocus(graphics2D: Graphics2D, locus: Locus) {
@@ -168,10 +196,11 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         //        println("e = ${e}")
         // check to see if full-screen mode is requested
         when {
-            e.isMetaDown -> theFrame.invertControlPanelVisibility() // use the OS full-screen mechanism
-            e.isAltDown -> toggleWandering()
+            e.isMetaDown    -> theFrame.invertControlPanelVisibility() // use the OS full-screen mechanism
+            e.isAltDown     -> toggleWandering()
             e.isControlDown -> clear()
-            else -> {
+            e.isShiftDown   -> removeMostRecentlyAddedPoint()
+            else            -> {
                 if (controlPanel.isAddLocusMode) {
                     println("adding point")
                     val point = e.point
@@ -187,12 +216,13 @@ class DoodlePanel(val theFrame: DoodleFrame, val controlPanel: ControlPanel, val
         repaint()
     }
 
+    private fun removeMostRecentlyAddedPoint() {
+        locusList.removeLast()
+    }
+
     private fun toggleWandering() {
         isWandering = !isWandering
         controlPanel.setWandering(isWandering)
-        if (isWandering) {
-            wander()
-        }
     }
 
     private fun addPlanet(x: Double, y: Double) {

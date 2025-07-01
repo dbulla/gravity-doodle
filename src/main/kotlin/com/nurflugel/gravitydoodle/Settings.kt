@@ -50,7 +50,7 @@ class Settings {
 
     fun restoreData() {
         firstPointIsSun = preferences.getBoolean("firstPointIsSun", true)
-        bigPlanets = preferences.getBoolean("BigPlanetaryMass", false)
+        bigPlanets = preferences.getBoolean("bigPlanets", false)
         numberOfRays = preferences.getInt("numberOfRays", initialRaysValue)
         drawRays = preferences.getBoolean("DrawRays", true)
         bigSun = preferences.getBoolean("BigSun", false)

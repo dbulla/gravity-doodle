@@ -12,7 +12,6 @@ import javax.swing.BoxLayout.Y_AXIS
 import javax.swing.border.EtchedBorder
 import kotlin.system.exitProcess
 
-
 /**
  * @author Douglas Bullard
  */
@@ -23,8 +22,6 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
     private val circularBorderButton = JRadioButton("Circular Border")
     private val moveLocusPointsRadioButton = JRadioButton("Move Locus Points")
     private val removeLocusPointsRadioButton = JRadioButton("Remove Locus Points")
-    private val fixedModeRadioButton = JRadioButton("Fixed Mode")
-    val animationModeRadioButton = JRadioButton("Animation Mode")
 
     private val sunCheckbox = JCheckBox("First point is a sun")
     private val bigPlanetsCheckbox = JCheckBox("Planets are very heavy (wilder movement)")
@@ -34,11 +31,9 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
     private val planetsBounceCheckbox = JCheckBox("Planets bounce off the edges")
 
     private var addMoveRemoteButtonGroup = ButtonGroup()
-    private var fixedWanderButtonGroup = ButtonGroup()
     private var borderButtonGroup = ButtonGroup()
 
     private val borderButtonPanel = JPanel()
-    private val fixedWanderModePanel = JPanel()
     private val locusRadioButtonPanel = JPanel()
     private val contentPanel = JPanel()
 
@@ -107,15 +102,6 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         borderButtonGroup.add(frameBorderButton)
         borderButtonGroup.add(circularBorderButton)
         circularBorderButton.isSelected = true
-
-        fixedWanderModePanel.layout = BoxLayout(fixedWanderModePanel, Y_AXIS)
-        fixedWanderModePanel.border = createTitledBorder(EtchedBorder(), "Movement")
-        fixedWanderModePanel.add(fixedModeRadioButton)
-        fixedWanderModePanel.add(animationModeRadioButton)
-        fixedModeRadioButton.isSelected = true
-        fixedWanderButtonGroup.add(fixedModeRadioButton)
-        fixedWanderButtonGroup.add(animationModeRadioButton)
-
         numberOfRaysSpinner.toolTipText = "Controls how many points per side"
 
         addMoveRemoteButtonGroup.add(addLocusPointsRadioButton)
@@ -129,8 +115,6 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         quitButton.addActionListener {
             exit()
         }
-        animationModeRadioButton.addActionListener { doodlePanel.wander() }
-        fixedModeRadioButton.addActionListener { setWandering(false) }
         numberOfRaysSpinner.addChangeListener {
             val numPointsPerSide = numberOfRaysSpinner.model.value.toString().toInt()
             doodlePanel.setNumPoints(numPointsPerSide)
@@ -140,8 +124,6 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         frameBorderButton.addActionListener { doodlePanel.refresh() }
         circularBorderButton.addActionListener { doodlePanel.refresh() }
 
-        // need to have _something_ registered to listen for key clicks, as jPanel and jFrame don't weem to work... maybe event thread issue?
-        fixedModeRadioButton.addKeyListener(ButtonKeyPressListener())
         sunCheckbox.addActionListener {
             settings.firstPointIsSun = sunCheckbox.isSelected
             bigSunCheckbox.isVisible = settings.firstPointIsSun
@@ -176,7 +158,6 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
         addComponent(drawRaysCheckbox, 0, y++, fill = EAST, anchor = WEST)
         /// right-hand side controls
         y = 0
-        addComponent(fixedWanderModePanel, 2, y++)
         addComponent(borderButtonPanel, 2, y++)
         addComponent(clearButton, 2, y++)
         addComponent(quitButton, 2, y++)
@@ -219,15 +200,12 @@ class ControlPanel(val doodleFrame: DoodleFrame, val settings: Settings) : JPane
 
     fun setWandering(isWandering: Boolean) {
         println("Setting wandering to $isWandering")
-        animationModeRadioButton.isSelected = isWandering
+//        animationModeRadioButton.isSelected = isWandering
         when {
             isWandering -> doodlePanel.wander()
-            else        -> doodlePanel.stopWorker()
+            !isWandering        -> doodlePanel.stopWorker()
         }
     }
-
-    val isWandering: Boolean
-        get() = animationModeRadioButton.isSelected
 
     val isAddLocusMode: Boolean
         get() = addLocusPointsRadioButton.isSelected
